@@ -1,0 +1,40 @@
+const fs = require('fs');
+const csv = require('csv');
+const puppeteer = require('puppeteer');
+
+//検索
+const search = async function(search_word) {
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+  await page.goto('https://www.google.com');
+  search_word = '\"' + search_word + '\"';
+  await page.type('input[title="検索"]', search_word);
+  await page.evaluate(() => {
+    document.querySelector('input[value^="Google"]').click();
+  });
+
+  await page.waitForNavigation({timeout: 60000, waitUntil: "domcontentloaded"});
+
+  await page.screenshot({path: `result/${search_word}.png`});
+  await browser.close();
+};
+
+
+//csvの処理
+const parser = csv.parse((error, data) => {
+
+  //変換後の配列を格納
+  let search_words = [];
+
+  //ループしながら１行ずつ処理
+  data.forEach((element) => {
+      search_words.push(element[0]);
+  })
+
+  search_words.forEach((search_word) => {
+      search(search_word);
+  })
+})
+
+//読み込みと処理を実行
+fs.createReadStream('list3.csv').pipe(parser);
